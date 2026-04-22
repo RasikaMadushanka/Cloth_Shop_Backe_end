@@ -1,9 +1,14 @@
 package edu.icet.ecom.model.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
+@Getter
+@Setter
 public class ProductDto {
-    public Integer prodeuctId;
+    public Integer productId;
     public String productName;
     public String category;
 
