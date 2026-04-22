@@ -4,5 +4,6 @@ public class LowStockDto {
     private String barcodeId;
     private String productName;
     private Integer currentQty;
-    
+    private String status; // LOW OR OUT
+
 }
