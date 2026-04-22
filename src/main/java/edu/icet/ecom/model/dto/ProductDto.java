@@ -8,23 +8,23 @@ import java.util.List;
 @Getter
 @Setter
 public class ProductDto {
-    public Integer productId;
-    public String productName;
-    public String category;
+    private Integer productId;
+    private String productName;
+    private String category;
 
-    public Double basePrice;
-    public String currency;
-    public Double discountPercentage;
-    public Double discountedPrice;
+    private Double basePrice;
+    private String currency;
+    private Double discountPercentage;
+    private Double discountedPrice;
 
-    public List<String>availableSizes;
-    public List<String>availableColors;
-    public String material;
-    public String season;
+    private List<String>availableSizes;
+    private List<String>availableColors;
+    private String material;
+    private String season;
 
-    public Integer totalQuantity;
-    public String stockStatus;
+    private Integer totalQuantity;
+    private String stockStatus;
 
-    public List<ProductVariantDto> variants;
+    private List<ProductVariantDto> variants;
 
 }

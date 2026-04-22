@@ -6,13 +6,13 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ProductVariantDto {
-    public String VarientId;
-    public String size;
-    public String color;
-    public Integer stockQuantity;
-    public String sku;
-    public String barcodeId;
+    private String VarientId;
+    private String size;
+    private String color;
+    private Integer stockQuantity;
+    private String sku;
+    private String barcodeId;
 
-    public Double priceOverride;
-    public Double finalPrice;
+    private Double priceOverride;
+    private Double finalPrice;
  }

@@ -6,15 +6,15 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminDto {
-    public Integer adminId;
-    public String username;
-    public String password;
-    public String role;
-    public String fullName;
-    public String NIC;
-    public String Address;
-    public String lastLoginTime;
-    public Boolean isActive;
+    private Integer adminId;
+    private String username;
+    private String password;
+    private String role;
+    private String fullName;
+    private String NIC;
+    private String Address;
+    private String lastLoginTime;
+    private Boolean isActive;
 
 
 }
