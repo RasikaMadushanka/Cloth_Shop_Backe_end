@@ -1,4 +1,4 @@
 package edu.icet.ecom.model.dto;
 
-public class ProductVariantDTO {
+public class AdminDto {
 }
