@@ -3,10 +3,13 @@ package edu.icet.ecom.service;
 import edu.icet.ecom.enums.StockStatus;
 import edu.icet.ecom.exceptions.ResourceNotFoundException; // Import the custom exception
 import edu.icet.ecom.model.dto.ProductDto;
+import edu.icet.ecom.model.dto.ProductVariantDto;
 import edu.icet.ecom.model.entity.ProductEntity;
 import edu.icet.ecom.model.entity.ProductVariantEntity;
 import edu.icet.ecom.repository.ProductRepository;
+import edu.icet.ecom.repository.ProductVariantRepository;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductService {
 
+    private final ProductVariantRepository variantRepository;
     private final ProductRepository productRepository;
     private final ModelMapper modelMapper;
 
@@ -107,5 +111,11 @@ public class ProductService {
             throw new ResourceNotFoundException("Delete failed: Product ID " + id + " does not exist.");
         }
         productRepository.deleteById(id);
+    }
+
+    public ProductVariantDto getByBarcode(String barcodeId) {
+        return variantRepository.findByBarcodeId(barcodeId)
+                .map(entity -> modelMapper.map(entity, ProductVariantDto.class))
+                .orElseThrow(() -> new ResourceNotFoundException("Barcode " + barcodeId + " not recognized"));
     }
 }

@@ -1,6 +1,7 @@
 package edu.icet.ecom.controller;
 
 import edu.icet.ecom.model.dto.ProductDto;
+import edu.icet.ecom.model.dto.ProductVariantDto;
 import edu.icet.ecom.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,10 @@ public class ProductController {
     public ResponseEntity<String>addProducts(@RequestBody ProductDto productDto){
         productService.saveProduct(productDto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Product added successfully");
+    }
+    @GetMapping("/barcode/{barcodeId}")
+    public ResponseEntity<ProductVariantDto>getByBarcode(@PathVariable String barcodeId){
+        return ResponseEntity.ok(productService.getByBarcode(barcodeId));
     }
     @GetMapping("/all")
     public ResponseEntity<List<ProductDto>> getAllProducts() { // Changed return type to List
