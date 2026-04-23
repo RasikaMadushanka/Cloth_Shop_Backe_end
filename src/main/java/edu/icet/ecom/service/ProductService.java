@@ -1,5 +1,6 @@
 package edu.icet.ecom.service;
 
+import edu.icet.ecom.exceptions.ResourceNotFoundException; // Import the custom exception
 import edu.icet.ecom.model.dto.ProductDto;
 import edu.icet.ecom.model.entity.ProductEntity;
 import edu.icet.ecom.repository.ProductRepository;
@@ -21,11 +22,9 @@ public class ProductService {
     @Transactional
     public void saveProduct(ProductDto productDto) {
         ProductEntity entity = modelMapper.map(productDto, ProductEntity.class);
-
         if (entity.getVariants() != null) {
             entity.getVariants().forEach(variant -> variant.setProduct(entity));
         }
-
         productRepository.save(entity);
     }
 
@@ -37,35 +36,30 @@ public class ProductService {
     public ProductDto getProductById(Integer id) {
         return productRepository.findById(id)
                 .map(entity -> modelMapper.map(entity, ProductDto.class))
-                .orElseThrow(() -> new RuntimeException("Product not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product with ID " + id + " not found"));
     }
 
     @Transactional
     public void updateProduct(ProductDto productDto) {
-        // 1. Check if the product exists in the DB
+        // Fetch existing record to ensure it is managed by Hibernate
         ProductEntity existingEntity = productRepository.findById(productDto.getProductId())
-                .orElseThrow(() -> new RuntimeException("Update failed: Product ID not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Update failed: Product not found"));
 
-        // 2. Use ModelMapper to map the DTO data INTO the existing managed entity
-        // This 'merges' the changes from the DTO into the entity we just found
+        // Map DTO data onto the existing entity
         modelMapper.map(productDto, existingEntity);
 
-        // 3. Re-link the variants
-        // Since we mapped into 'existingEntity', we must ensure its children know who the parent is
+        // Re-link variants to the parent
         if (existingEntity.getVariants() != null) {
             existingEntity.getVariants().forEach(variant -> variant.setProduct(existingEntity));
         }
-
-        // 4. Save the updated entity
         productRepository.save(existingEntity);
     }
 
     @Transactional
     public void deleteProduct(Integer id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-        } else {
-            throw new RuntimeException("Delete failed: Product ID " + id + " does not exist.");
+        if (!productRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Delete failed: Product ID " + id + " does not exist.");
         }
+        productRepository.deleteById(id);
     }
 }
