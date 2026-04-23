@@ -27,8 +27,8 @@ public class ProductEntity {
     private String material;
     private String season;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProductVariantEntity>variants;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<ProductVariantEntity> variants;
 
 
 }

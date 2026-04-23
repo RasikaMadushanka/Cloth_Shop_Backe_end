@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
@@ -23,9 +24,9 @@ public class ProductController {
         productService.saveProduct(productDto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Product added successfully");
     }
-    @GetMapping("/barcode/{barcodeId}")
-    public ResponseEntity<ProductVariantDto>getByBarcode(@PathVariable String barcodeId){
-        return ResponseEntity.ok(productService.getByBarcode(barcodeId));
+    @GetMapping("/barcodes/list-only")
+    public ResponseEntity<List<String>> getOnlyBarcodes() {
+        return ResponseEntity.ok(productService.getAllBarcodeIdsOnly());
     }
     @GetMapping("/all")
     public ResponseEntity<List<ProductDto>> getAllProducts() { // Changed return type to List

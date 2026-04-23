@@ -8,6 +8,10 @@ import org.springframework.context.annotation.Configuration;
 public class AppConfig {
     @Bean
     public ModelMapper modelMapper() {
-        return new ModelMapper();
+        ModelMapper modelMapper = new ModelMapper();
+        // ✅ This stops the "multiple source property hierarchies" error
+        modelMapper.getConfiguration()
+                .setMatchingStrategy(org.modelmapper.convention.MatchingStrategies.STRICT);
+        return modelMapper;
     }
 }

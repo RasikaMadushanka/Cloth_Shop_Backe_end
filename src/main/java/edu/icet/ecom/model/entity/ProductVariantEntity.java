@@ -10,6 +10,7 @@ import lombok.Setter;
 @Setter
 public class ProductVariantEntity {
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String variantId; // e.g., V-5001
 
     private String size;
