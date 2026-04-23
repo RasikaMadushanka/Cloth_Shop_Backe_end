@@ -49,6 +49,7 @@ public class SecurityConfig {
 
                         // 3. CLEANED: Allow ALL Product operations without Admin role for now
                         .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/stock/**").permitAll()
 
                         // 4. Everything else requires authentication
                         .anyRequest().authenticated()
