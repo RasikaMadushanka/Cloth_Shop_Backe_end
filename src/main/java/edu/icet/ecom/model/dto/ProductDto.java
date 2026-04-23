@@ -4,6 +4,7 @@ import edu.icet.ecom.enums.StockStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -23,6 +24,9 @@ public class ProductDto {
     private List<String>availableColors;
     private String material;
     private String season;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     private Integer totalQuantity;
     private List<ProductVariantDto> variants;
