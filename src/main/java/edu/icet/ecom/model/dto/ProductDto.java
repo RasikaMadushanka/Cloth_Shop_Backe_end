@@ -1,5 +1,6 @@
 package edu.icet.ecom.model.dto;
 
+import edu.icet.ecom.enums.StockStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,7 @@ public class ProductDto {
     private String currency;
     private Double discountPercentage;
     private Double discountedPrice;
+    private StockStatus stockStatus;
 
     private List<String>availableSizes;
     private List<String>availableColors;
@@ -23,8 +25,6 @@ public class ProductDto {
     private String season;
 
     private Integer totalQuantity;
-    private String stockStatus;
-
     private List<ProductVariantDto> variants;
 
 }
