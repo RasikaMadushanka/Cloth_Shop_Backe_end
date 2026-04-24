@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,13 +30,10 @@ public class ProductService {
     private final StockLogRepository logRepository;
     private final ModelMapper modelMapper;
 
-    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
     @Transactional
     public void saveProduct(ProductDto productDto) {
         ProductEntity entity = modelMapper.map(productDto, ProductEntity.class);
 
-        // Handle manual or automatic timestamps
         if (entity.getCreatedAt() == null) entity.setCreatedAt(LocalDateTime.now());
         if (entity.getUpdatedAt() == null) entity.setUpdatedAt(LocalDateTime.now());
 
@@ -51,9 +49,21 @@ public class ProductService {
 
         refreshProductMetrics(entity);
         ProductEntity savedEntity = productRepository.save(entity);
-
-        // Log the initial stock for reporting
         createInitialStockLogs(savedEntity);
+    }
+
+    private void createInitialStockLogs(ProductEntity entity) {
+        if (entity.getVariants() != null) {
+            entity.getVariants().forEach(variant -> {
+                StockLogEntity log = new StockLogEntity();
+                log.setVariant(variant);
+                log.setBarcodeId(variant.getBarcodeId());
+                log.setQuantityChange(variant.getStockQuantity());
+                log.setUpdateReason("INITIAL_STOCK_ADD");
+                log.setTimestamp(entity.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                logRepository.save(log);
+            });
+        }
     }
 
     @Transactional
@@ -61,68 +71,51 @@ public class ProductService {
         ProductEntity existingEntity = productRepository.findById(productDto.getProductId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        // Set update timestamp (manual backdate support)
-        LocalDateTime updateTime = (productDto.getUpdatedAt() != null) ? productDto.getUpdatedAt() : LocalDateTime.now();
-        existingEntity.setUpdatedAt(updateTime);
+        existingEntity.setUpdatedAt(LocalDateTime.now());
 
         if (productDto.getProductName() != null) existingEntity.setProductName(productDto.getProductName());
         if (productDto.getCategory() != null) existingEntity.setCategory(productDto.getCategory());
         if (productDto.getBasePrice() != null) existingEntity.setBasePrice(productDto.getBasePrice());
 
+        List<ProductVariantEntity> newlyAddedVariants = new ArrayList<>();
+
         if (productDto.getVariants() != null) {
             for (ProductVariantDto vDto : productDto.getVariants()) {
                 if (vDto.getVariantId() != null && !vDto.getVariantId().isEmpty()) {
-                    // Update Existing Variant
+                    // Update Existing
                     existingEntity.getVariants().stream()
                             .filter(v -> v.getVariantId().equals(vDto.getVariantId()))
                             .findFirst()
-                            .ifPresent(existingVar -> {
-                                int oldQty = (existingVar.getStockQuantity() != null) ? existingVar.getStockQuantity() : 0;
-                                int newQty = (vDto.getStockQuantity() != null) ? vDto.getStockQuantity() : oldQty;
-                                int diff = newQty - oldQty;
-
-                                modelMapper.map(vDto, existingVar);
-
-                                // Log changes for the report if quantity changed
-                                if (diff != 0) {
-                                    createManualStockLog(existingVar, diff, "PRODUCT_UPDATE_ADJUSTMENT", updateTime);
-                                }
-                            });
+                            .ifPresent(existingVar -> modelMapper.map(vDto, existingVar));
                 } else {
-                    // Add New Variant
+                    // Prepare New
                     ProductVariantEntity newVar = modelMapper.map(vDto, ProductVariantEntity.class);
                     newVar.setProduct(existingEntity);
                     newVar.setSku(generateSku(existingEntity, newVar));
-                    if (newVar.getBarcodeId() == null) newVar.setBarcodeId(generateUniqueBarcode());
+                    if (newVar.getBarcodeId() == null || newVar.getBarcodeId().isEmpty()) {
+                        newVar.setBarcodeId(generateUniqueBarcode());
+                    }
 
-                    existingEntity.getVariants().add(newVar);
-
-                    // Log initial stock for the new variant
-                    createManualStockLog(newVar, newVar.getStockQuantity(), "NEW_VARIANT_ADDED", updateTime);
+                    // Manually save the variant to ensure it has an ID immediately
+                    ProductVariantEntity savedVar = variantRepository.save(newVar);
+                    newlyAddedVariants.add(savedVar);
                 }
             }
         }
 
         refreshProductMetrics(existingEntity);
-        productRepository.save(existingEntity);
-    }
+        productRepository.saveAndFlush(existingEntity);
 
-    private void createInitialStockLogs(ProductEntity entity) {
-        if (entity.getVariants() != null) {
-            entity.getVariants().forEach(variant ->
-                    createManualStockLog(variant, variant.getStockQuantity(), "INITIAL_STOCK_ADD", entity.getCreatedAt())
-            );
+        // Logs for new variants
+        for (ProductVariantEntity savedVar : newlyAddedVariants) {
+            StockLogEntity log = new StockLogEntity();
+            log.setVariant(savedVar);
+            log.setBarcodeId(savedVar.getBarcodeId());
+            log.setQuantityChange(savedVar.getStockQuantity());
+            log.setUpdateReason("NEW_VARIANT_ADDED");
+            log.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            logRepository.save(log);
         }
-    }
-
-    private void createManualStockLog(ProductVariantEntity variant, Integer change, String reason, LocalDateTime time) {
-        StockLogEntity log = new StockLogEntity();
-        log.setVariant(variant);
-        log.setBarcodeId(variant.getBarcodeId());
-        log.setQuantityChange(change != null ? change : 0);
-        log.setUpdateReason(reason);
-        log.setTimestamp(time.format(DateTimeFormatter.ofPattern(DATE_FORMAT)));
-        logRepository.save(log);
     }
 
     public List<ProductDto> getAllProducts() {

@@ -9,17 +9,19 @@ import lombok.Setter;
 @Setter
 @Table(name = "stock_report")
 public class StockReportEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reportId;
 
-    private String reportType;    // "DAILY" or "MONTHLY"
-    private String reportDate;    // e.g., "2026-04-23"
+    private String reportType;   // DAILY / MONTHLY / YEARLY
+    private String reportDate;   // 2026-04-23
 
-    private Integer totalItemsIn;  // Sum of positive quantityChange in StockLog
-    private Integer totalItemsOut; // Sum of negative quantityChange in StockLog
-    private Double totalRevenue;   // Total sales amount for this period
+    private Integer totalItemsIn;
+    private Integer totalItemsOut;
+    private Double totalRevenue;
 
-    private Double stockValue;     // (Current Stock * Price) at the time of report
-    private String generatedAt;    // When the report was actually compiled
+    private Double stockValue;
+
+    private String generatedAt;
 }

@@ -14,5 +14,6 @@ public class StockReportDto {
     private Integer totalItemsOut;
     private Double totalRevenue;
     private List<LowStockDto>lowStockAlert;
+    private Double stockValue;
 }
 

@@ -7,23 +7,29 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table (name = "stock_log")
+@Table(name = "stock_log", uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uk_daily_restock",
+                columnNames = {"barcodeId", "quantityChange", "timestamp"}
+        )
+})
 public class StockLogEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long logId;
 
-    @ManyToOne
+    // Use MERGE to prevent TransientPropertyValueException when saving logs for new variants
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinColumn(name = "variant_id", nullable = false)
     private ProductVariantEntity variant;
 
-    private String barcodeId;      // Snapshot of the barcode used
-    private Integer quantityChange; // + for restock, - for sale/damage
-    private String updateReason;    // "Restock", "Sale", "Return", "Damage"
-    private String timestamp;       // e.g., "2026-04-23 10:30:00"
+    private String barcodeId;
+    private Integer quantityChange;
+    private String updateReason;
+    private String timestamp;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
     private AdminEntity admin;
-
 }
