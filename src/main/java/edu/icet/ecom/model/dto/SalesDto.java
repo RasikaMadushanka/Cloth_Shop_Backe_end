@@ -12,6 +12,7 @@ public class SalesDto {
     private Integer adminId;
     private Double totalAmount;
     private Double discountedApplied;
+    private Double discountPercentage;
     private Double netAmount;
     private String paymentMethod;
     private String timestamp;
