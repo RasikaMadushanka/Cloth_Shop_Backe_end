@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 @RequiredArgsConstructor
@@ -15,6 +17,11 @@ import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
 
 public class Admin_Controller {
     private final AdminService adminService;
+
+    @GetMapping("/all")
+    public List<AdminDto>getAllAdmins(){
+        return adminService.getAllAdmins();
+    }
 
     @PostMapping("/add")
     public ResponseEntity<String> AddAdmin(@RequestBody AdminDto adminDto){
