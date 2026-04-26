@@ -47,9 +47,12 @@ public class SecurityConfig {
                         // 2. Allow Authentication & System endpoints
                         .requestMatchers("/auth/**", "/error", "/h2-console/**").permitAll()
 
-                        // 3. CLEANED: Allow ALL Product operations without Admin role for now
+                        // ... inside securityFilterChain authorizeHttpRequests
+                        .requestMatchers("/api/admin/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/sales/**").permitAll()  // Changed from /sales/ to /sale/
                         .requestMatchers("/api/stock/**").permitAll()
+                        .requestMatchers("/api/sales-report/**").permitAll() // Add this if you use the report controller
 
                         // 4. Everything else requires authentication
                         .anyRequest().authenticated()

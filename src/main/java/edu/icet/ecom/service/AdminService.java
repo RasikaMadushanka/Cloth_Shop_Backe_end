@@ -5,6 +5,9 @@ import edu.icet.ecom.model.entity.AdminEntity;
 import edu.icet.ecom.repository.AdminRepository;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
@@ -13,7 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AdminService {
+public class AdminService implements UserDetailsService {
     private final ModelMapper modelMapper;
     private final AdminRepository adminRepository;
     public void DeleteAdmin(Integer id) {
@@ -47,6 +50,22 @@ public class AdminService {
         return entities.stream()
                 .map(entity -> modelMapper.map(entity, AdminDto.class))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        AdminEntity admin = adminRepository.findByUsername(username);
+
+        if (admin == null) {
+            throw new UsernameNotFoundException("Admin not found with username: " + username);
+        }
+
+        // Convert your AdminEntity into a Spring Security User object
+        return org.springframework.security.core.userdetails.User
+                .withUsername(admin.getUsername())
+                .password(admin.getPassword())
+                .authorities(admin.getRole()) // Ensure this matches your role string (e.g., "ROLE_ADMIN")
+                .build();
     }
 }
 

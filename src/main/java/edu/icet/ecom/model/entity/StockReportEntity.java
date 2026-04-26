@@ -20,6 +20,10 @@ public class StockReportEntity {
     private Integer totalItemsIn;
     private Integer totalItemsOut;
     private Double totalRevenue;
+    @Column(name = "total_discount_given")
+    private Double totalDiscountGiven;
+
+    private Double soldItemsValue;
 
     private Double stockValue;
 
