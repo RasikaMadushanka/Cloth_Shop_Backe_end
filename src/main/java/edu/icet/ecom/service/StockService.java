@@ -5,12 +5,10 @@ import edu.icet.ecom.exceptions.ResourceNotFoundException;
 import edu.icet.ecom.model.dto.StockReportDto;
 import edu.icet.ecom.model.dto.StockUpdateDto;
 import edu.icet.ecom.model.entity.ProductVariantEntity;
+import edu.icet.ecom.model.entity.SaleEntity;
 import edu.icet.ecom.model.entity.StockLogEntity;
 import edu.icet.ecom.model.entity.StockReportEntity;
-import edu.icet.ecom.repository.ProductRepository;
-import edu.icet.ecom.repository.ProductVariantRepository;
-import edu.icet.ecom.repository.StockLogRepository;
-import edu.icet.ecom.repository.StockReportRepository;
+import edu.icet.ecom.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -32,6 +30,7 @@ public class StockService {
     private final StockLogRepository logRepository;
     private final ProductRepository productRepository;
     private final StockReportRepository reportRepository;
+    private final SaleRepository saleRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -76,30 +75,36 @@ public class StockService {
 
     @Transactional
     public StockReportDto generateReport(String type, String date) {
-        // The query 'findByTimestampPattern' uses LIKE 'YYYY-MM-DD%'
         List<StockLogEntity> logs = logRepository.findByTimestampPattern(date);
+
+        // 1. Get Sales for the same date to calculate real Revenue and Discounts
+        List<SaleEntity> sales = saleRepository.findByTimestampStartingWith(date);
 
         int totalIn = 0;
         int totalOut = 0;
-        double totalRevenue = 0.0;
+        double soldItemsValueToday = 0.0;
+        double totalDiscounts = 0.0;
+        double actualRevenue = 0.0;
 
+        // Calculate Discounts and Net Revenue from Sale Entities
+        for (SaleEntity sale : sales) {
+            totalDiscounts += (sale.getDiscountAmount() != null) ? sale.getDiscountAmount() : 0.0;
+            actualRevenue += (sale.getNetAmount() != null) ? sale.getNetAmount() : 0.0;
+        }
+
+        // Calculate Stock movement and Sold Items Value from Logs
         for (StockLogEntity log : logs) {
             int qty = (log.getQuantityChange() != null) ? log.getQuantityChange() : 0;
-
             if (qty > 0) {
-                // Counts INITIAL_STOCK_ADD, NEW_VARIANT_ADDED, and RESTOCK
                 totalIn += qty;
             } else if (qty < 0) {
-                // Counts Sales/Reductions
                 int soldCount = Math.abs(qty);
                 totalOut += soldCount;
-
                 ProductVariantEntity variant = log.getVariant();
                 if (variant != null) {
                     double price = (variant.getPriceOverride() != null)
-                            ? variant.getPriceOverride()
-                            : variant.getProduct().getBasePrice();
-                    totalRevenue += (soldCount * price);
+                            ? variant.getPriceOverride() : variant.getProduct().getBasePrice();
+                    soldItemsValueToday += (soldCount * price);
                 }
             }
         }
@@ -109,25 +114,43 @@ public class StockService {
         dto.setDate(date);
         dto.setTotalItemsIn(totalIn);
         dto.setTotalItemsOut(totalOut);
-        dto.setTotalRevenue(totalRevenue);
-        dto.setStockValue(calculateStockValue());
+        dto.setTotalRevenue(actualRevenue); // Real money after discounts
+        dto.setTotalDiscountGiven(totalDiscounts); // Fixing the NULL issue
+        dto.setStockValue(calculateStockValue()); // Current warehouse value
 
-        saveOrUpdateReport(dto);
+        saveOrUpdateReport(dto, soldItemsValueToday);
         return dto;
     }
-    // ... [calculateStockValue, saveOrUpdateReport, refreshStatus methods remain the same] ...
 
-    private void saveOrUpdateReport(StockReportDto dto) {
-        StockReportEntity entity = reportRepository
-                .findByReportDateAndReportType(dto.getDate(), dto.getReportType())
-                .orElse(new StockReportEntity());
+    private void saveOrUpdateReport(StockReportDto dto, double soldItemsValue) {
+        List<StockReportEntity> existingReports = reportRepository
+                .findByReportDateAndReportType(dto.getDate(), dto.getReportType());
+
+        StockReportEntity entity;
+
+        if (!existingReports.isEmpty()) {
+            entity = existingReports.get(0);
+            // DO NOT update entity.setStockValue(dto.getStockValue()) here.
+            // This keeps the "Initial Stock Value" frozen from the first generation.
+
+            if (existingReports.size() > 1) {
+                for (int i = 1; i < existingReports.size(); i++) {
+                    reportRepository.delete(existingReports.get(i));
+                }
+            }
+        } else {
+            entity = new StockReportEntity();
+            // ONLY set the stock value when the report is created for the first time
+            entity.setStockValue(dto.getStockValue());
+        }
 
         entity.setReportType(dto.getReportType());
         entity.setReportDate(dto.getDate());
         entity.setTotalItemsIn(dto.getTotalItemsIn());
         entity.setTotalItemsOut(dto.getTotalItemsOut());
         entity.setTotalRevenue(dto.getTotalRevenue());
-        entity.setStockValue(dto.getStockValue());
+        entity.setTotalDiscountGiven(dto.getTotalDiscountGiven()); // Saving the discount
+        entity.setSoldItemsValue(soldItemsValue);
         entity.setGeneratedAt(LocalDateTime.now().format(FORMATTER));
 
         reportRepository.saveAndFlush(entity);
