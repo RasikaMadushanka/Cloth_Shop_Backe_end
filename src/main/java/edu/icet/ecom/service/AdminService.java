@@ -3,6 +3,7 @@ package edu.icet.ecom.service;
 import edu.icet.ecom.model.dto.AdminDto;
 import edu.icet.ecom.model.entity.AdminEntity;
 import edu.icet.ecom.repository.AdminRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class AdminService implements UserDetailsService {
     private final ModelMapper modelMapper;
     private final AdminRepository adminRepository;
+
     public void DeleteAdmin(Integer id) {
         if (!adminRepository.existsById(id)) {
             throw new RuntimeException("Admin with id " + id + " not found");
@@ -67,5 +69,21 @@ public class AdminService implements UserDetailsService {
                 .authorities(admin.getRole()) // Ensure this matches your role string (e.g., "ROLE_ADMIN")
                 .build();
     }
-}
 
+    @PostConstruct
+    public void initDefaultAdmin() {
+        // Check if the database is empty or if your specific admin doesn't exist
+        if (adminRepository.findByUsername("admin") == null) {
+            AdminDto defaultAdmin = new AdminDto();
+            defaultAdmin.setUsername("admin");
+            defaultAdmin.setPassword("admin123"); // Note: You should ideally encode this
+            defaultAdmin.setRole("ADMIN");
+            defaultAdmin.setFullName("System Administrator");
+            defaultAdmin.setIsActive(true);
+
+            // Use your existing AddAdmin logic
+            AddAdmin(defaultAdmin);
+            System.out.println(">>> Default Admin 'admin' has been initialized.");
+        }
+    }
+}

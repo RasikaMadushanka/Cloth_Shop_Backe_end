@@ -160,13 +160,41 @@ public class ProductService {
     }
 
     private String generateUniqueBarcode() {
-        return String.valueOf(System.currentTimeMillis()).substring(6) + ((int) (Math.random() * 900) + 100);
+        String prefix = "479"; // Sri Lanka
+        String company = "8000";
+
+        // Generate 5-digit product part
+        int random = (int) (Math.random() * 100000);
+        String productPart = String.format("%05d", random);
+
+        String base = prefix + company + productPart; // 12 digits
+
+        int sum = 0;
+        for (int i = 0; i < base.length(); i++) {
+            int digit = Character.getNumericValue(base.charAt(i));
+            sum += (i % 2 == 0) ? digit : digit * 3;
+        }
+
+        int checkDigit = (10 - (sum % 10)) % 10;
+
+        return base + checkDigit; // ✅ ALWAYS 13 digits
     }
 
     @Transactional
     public void deleteProduct(Integer id) {
-        if (!productRepository.existsById(id)) throw new ResourceNotFoundException("Product not found");
-        productRepository.deleteById(id);
+        ProductEntity product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+
+        // 1. Manually clear logs for every variant before deleting the product
+        if (product.getVariants() != null) {
+            for (ProductVariantEntity variant : product.getVariants()) {
+                // Assuming you add this method to your StockLogRepository
+                logRepository.deleteByVariant(variant);
+            }
+        }
+
+        // 2. Now the database will allow the deletion
+        productRepository.delete(product);
     }
 
     public List<Map<String, Object>> getBarcodesAndPrices() {

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Table(name = "product_variant")
 @Entity
 @Getter
@@ -27,4 +29,6 @@ public class ProductVariantEntity {
     @ManyToOne
     @JoinColumn(name = "product_id",nullable = false)
     private ProductEntity product;
+    @OneToMany(mappedBy = "variant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StockLogEntity> stockLogs;
 }

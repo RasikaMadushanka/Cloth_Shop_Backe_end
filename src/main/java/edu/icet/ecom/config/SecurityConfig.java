@@ -39,22 +39,19 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .headers(headers -> headers.frameOptions(frame -> frame.disable())) // For H2 Console
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+                // Inside securityFilterChain method
+                // Inside securityFilterChain authorizeHttpRequests
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Allow pre-flight OPTIONS requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // 2. Allow Authentication & System endpoints
                         .requestMatchers("/auth/**", "/error", "/h2-console/**").permitAll()
 
-                        // ... inside securityFilterChain authorizeHttpRequests
-                        .requestMatchers("/api/admin/**").permitAll()
+                        // Match your @RequestMapping("/api/products")
                         .requestMatchers("/api/products/**").permitAll()
-                        .requestMatchers("/api/sales/**").permitAll()  // Changed from /sales/ to /sale/
+                        .requestMatchers("/api/admin/**").permitAll()
+                        .requestMatchers("/api/sales/**").permitAll()
                         .requestMatchers("/api/stock/**").permitAll()
-                        .requestMatchers("/api/sales-report/**").permitAll() // Add this if you use the report controller
 
-                        // 4. Everything else requires authentication
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
@@ -84,7 +81,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200", "http://127.0.0.1:5500"));
+
+        // Added 5173 (Vite) and 3000 (CRA) to ensure React can connect
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://localhost:4200",
+                "http://127.0.0.1:5500"
+        ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
