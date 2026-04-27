@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -167,7 +169,26 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
-    public List<String> getAllBarcodeIdsOnly() {
-        return variantRepository.findAll().stream().map(ProductVariantEntity::getBarcodeId).toList();
+    public List<Map<String, Object>> getBarcodesAndPrices() {
+        return variantRepository.findAll().stream()
+                .map(variant -> {
+                    Map<String, Object> map = new HashMap<>();
+                    // Use a default string if barcode is null to prevent front-end crashes
+                    map.put("barcodeId", variant.getBarcodeId() != null ? variant.getBarcodeId() : "N/A");
+                    map.put("price", variant.getPriceOverride() != null ? variant.getPriceOverride() : 0.0);
+                    return map;
+                })
+                .toList();
+    }
+
+
+    @Transactional
+    public void updatePriceByBarcode(String barcode, Double price) {
+        // Assuming you have a ProductVariantRepository injected
+        ProductVariantEntity variant = variantRepository.findByBarcodeId(barcode)
+                .orElseThrow(() -> new RuntimeException("Barcode " + barcode + " not found"));
+
+        variant.setPriceOverride(price);
+        variantRepository.save(variant);
     }
 }
