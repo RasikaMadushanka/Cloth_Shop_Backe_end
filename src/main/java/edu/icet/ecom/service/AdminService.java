@@ -10,8 +10,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Ensure this is imported
 
-import java.io.Serializable;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,9 +24,14 @@ public class AdminService implements UserDetailsService {
     private final ModelMapper modelMapper;
     private final AdminRepository adminRepository;
 
+    private String getCurrentTimestamp() {
+        return ZonedDateTime.now(ZoneId.of("Asia/Colombo"))
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
     public void DeleteAdmin(Integer id) {
         if (!adminRepository.existsById(id)) {
-            throw new RuntimeException("Admin with id " + id + " not found");
+            throw new RuntimeException("Admin not found");
         }
         adminRepository.deleteById(id);
     }
@@ -31,66 +39,69 @@ public class AdminService implements UserDetailsService {
     public void AddAdmin(AdminDto adminDto) {
         AdminEntity entity = modelMapper.map(adminDto, AdminEntity.class);
         adminRepository.save(entity);
-
     }
 
     public void UpdateAdmin(AdminDto adminDto) {
         AdminEntity existingAdmin = adminRepository.findById(adminDto.getAdminId())
-                .orElseThrow(() -> new RuntimeException("Admin not found with ID: " + adminDto.getAdminId()));
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
 
         existingAdmin.setUsername(adminDto.getUsername());
         existingAdmin.setPassword(adminDto.getPassword());
         existingAdmin.setRole(adminDto.getRole());
         existingAdmin.setFullName(adminDto.getFullName());
         existingAdmin.setIsActive(adminDto.getIsActive());
-
-        // --- ADD THESE TWO LINES ---
         existingAdmin.setNIC(adminDto.getNIC());
         existingAdmin.setAddress(adminDto.getAddress());
-        // ---------------------------
+
+        // Manual update of time if provided from frontend
+        existingAdmin.setLastLoginTime(adminDto.getLastLoginTime());
 
         adminRepository.save(existingAdmin);
     }
 
     public List<AdminDto> getAllAdmins() {
         List<AdminEntity> entities = adminRepository.findAll();
-
         return entities.stream()
                 .map(entity -> modelMapper.map(entity, AdminDto.class))
                 .collect(Collectors.toList());
     }
 
+    /**
+     * CRITICAL FIX: Added @Transactional and saveAndFlush
+     */
     @Override
+    @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         AdminEntity admin = adminRepository.findByUsername(username);
 
         if (admin == null) {
-            throw new UsernameNotFoundException("Admin not found with username: " + username);
+            throw new UsernameNotFoundException("User not found: " + username);
         }
 
-        // Convert your AdminEntity into a Spring Security User object
+        // Set the Sri Lanka Local Time
+        admin.setLastLoginTime(getCurrentTimestamp());
+
+        // Use saveAndFlush to force the update to the DB immediately
+        adminRepository.saveAndFlush(admin);
+
         return org.springframework.security.core.userdetails.User
                 .withUsername(admin.getUsername())
                 .password(admin.getPassword())
-                .authorities(admin.getRole()) // Ensure this matches your role string (e.g., "ROLE_ADMIN")
+                .authorities(admin.getRole())
                 .build();
     }
 
     @PostConstruct
     public void initDefaultAdmin() {
-        // Check if the database is empty or if your specific admin doesn't exist
         if (adminRepository.findByUsername("admin") == null) {
             AdminDto defaultAdmin = new AdminDto();
             defaultAdmin.setUsername("admin");
             defaultAdmin.setNIC("200535100316");
-            defaultAdmin.setPassword("admin123"); // Note: You should ideally encode this
+            defaultAdmin.setPassword("admin123");
             defaultAdmin.setRole("ADMIN");
             defaultAdmin.setFullName("System Administrator");
             defaultAdmin.setIsActive(true);
-
-            // Use your existing AddAdmin logic
             AddAdmin(defaultAdmin);
-            System.out.println(">>> Default Admin 'admin' has been initialized.");
         }
     }
 }

@@ -25,6 +25,7 @@ public class AdminEntity  {
     private Boolean isActive;
     private String NIC;
     private String Address;
+    @Column(name = "last_login_time") // Use this to be safe
     private String lastLoginTime;
 
 

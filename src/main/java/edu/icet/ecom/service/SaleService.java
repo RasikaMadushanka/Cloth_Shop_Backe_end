@@ -29,67 +29,103 @@ public class SaleService {
 
     @Transactional
     public void placeOrder(SalesDto salesDto) {
+
+        // 🧾 Create Sale
         SaleEntity saleEntity = new SaleEntity();
         saleEntity.setSaleId("SALE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+        String now = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
         saleEntity.setTimestamp(now);
         saleEntity.setPaymentMethod(salesDto.getPaymentMethod());
 
+        // 👤 Admin
         AdminEntity admin = adminRepository.findById(salesDto.getAdminId())
                 .orElseThrow(() -> new RuntimeException("Admin not found"));
         saleEntity.setAdmin(admin);
 
         double totalAmount = 0.0;
+        double totalDiscountAmount = 0.0;
+
         List<SalesItemEntity> itemEntities = new ArrayList<>();
 
+        // 📦 Loop items
         for (SalesItemDto itemDto : salesDto.getItems()) {
-            ProductVariantEntity variant = variantRepository.findByBarcodeId(itemDto.getBarcodeId())
-                    .orElseThrow(() -> new RuntimeException("Barcode not found: " + itemDto.getBarcodeId()));
 
+            ProductVariantEntity variant = variantRepository
+                    .findByBarcodeId(itemDto.getBarcodeId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Barcode not found: " + itemDto.getBarcodeId()
+                    ));
+
+            // ❌ Stock check
             if (variant.getStockQuantity() < itemDto.getQuantity()) {
                 throw new RuntimeException("Insufficient stock for: " + variant.getSku());
             }
 
-            // Deduct Inventory
+            // 📉 Deduct stock
             variant.setStockQuantity(variant.getStockQuantity() - itemDto.getQuantity());
             variantRepository.save(variant);
 
-            // Map Item Entity
+            // 💰 Item calculations
+            double unitPrice = itemDto.getUnitPrice();
+            int qty = itemDto.getQuantity();
+
+            double itemTotal = unitPrice * qty;
+
+            double pct = (salesDto.getDiscountPercentage() != null)
+                    ? salesDto.getDiscountPercentage()
+                    : 0.0;
+
+            double itemDiscount = itemTotal * (pct / 100);
+            double itemNet = itemTotal - itemDiscount;
+
+            // 🧾 Create item entity
             SalesItemEntity itemEntity = new SalesItemEntity();
             itemEntity.setSale(saleEntity);
             itemEntity.setVariant(variant);
-            itemEntity.setQuantity(itemDto.getQuantity());
-            itemEntity.setUnitPrice(itemDto.getUnitPrice());
-            itemEntity.setTotalPrice(itemDto.getUnitPrice() * itemDto.getQuantity());
+            itemEntity.setQuantity(qty);
+            itemEntity.setUnitPrice(unitPrice);
+
+            itemEntity.setTotalPrice(itemTotal);
+            itemEntity.setDiscountAmount(itemDiscount);   // ✅ NEW
+            itemEntity.setNetPrice(itemNet);              // ✅ NEW
+
             itemEntities.add(itemEntity);
 
-            totalAmount += itemEntity.getTotalPrice();
+            // 📊 Accumulate totals
+            totalAmount += itemTotal;
+            totalDiscountAmount += itemDiscount;
 
-            // Log Stock Movement (OUT)
+            // 📜 Stock log
             StockLogEntity log = new StockLogEntity();
             log.setVariant(variant);
             log.setBarcodeId(variant.getBarcodeId());
-            log.setQuantityChange(-itemDto.getQuantity());
+            log.setQuantityChange(-qty);
             log.setUpdateReason("SALE: " + saleEntity.getSaleId());
             log.setTimestamp(now);
             log.setAdmin(admin);
+
             logRepository.save(log);
 
+            // 🔄 Update stock status
             stockService.refreshStatus(variant.getProduct().getProductId());
         }
 
-        // --- DISCOUNT CALCULATIONS ---
-        double pct = (salesDto.getDiscountPercentage() != null) ? salesDto.getDiscountPercentage() : 0.0;
-        double discountVal = totalAmount * (pct / 100);
-        double finalNet = totalAmount - discountVal;
+        // 💰 Final totals
+        double finalNet = totalAmount - totalDiscountAmount;
 
-        // Persist to Entity
+        // 🧾 Save to sale
         saleEntity.setTotalAmount(totalAmount);
-        saleEntity.setDiscountPercentage(pct);
-        saleEntity.setDiscountAmount(discountVal); // This matches your 'discountedApplied' field
+        saleEntity.setDiscountPercentage(
+                salesDto.getDiscountPercentage() != null ? salesDto.getDiscountPercentage() : 0.0
+        );
+        saleEntity.setDiscountAmount(totalDiscountAmount);
         saleEntity.setNetAmount(finalNet);
         saleEntity.setItems(itemEntities);
 
+        // 💾 Save
         saleRepository.save(saleEntity);
     }
 
