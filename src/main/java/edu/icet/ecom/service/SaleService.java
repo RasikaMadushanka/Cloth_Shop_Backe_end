@@ -33,8 +33,8 @@ public class SaleService {
         saleEntity.setSaleId("SALE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
 
         LocalDateTime now = LocalDateTime.now();
-        // Use a consistent formatter to avoid parsing errors later
         String formattedTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String dateOnly = now.toLocalDate().toString(); // e.g., 2026-04-29
 
         saleEntity.setTimestamp(formattedTimestamp);
         saleEntity.setPaymentMethod(salesDto.getPaymentMethod());
@@ -56,11 +56,11 @@ public class SaleService {
                 throw new RuntimeException("Insufficient stock for: " + variant.getSku());
             }
 
-            // Update Stock
+            // 1. Update Variant Quantity in Database
             variant.setStockQuantity(variant.getStockQuantity() - itemDto.getQuantity());
             variantRepository.save(variant);
 
-            // Pricing Logic
+            // 2. Pricing Calculations
             double unitPrice = itemDto.getUnitPrice();
             int qty = itemDto.getQuantity();
             double itemTotal = unitPrice * qty;
@@ -81,17 +81,17 @@ public class SaleService {
             totalAmount += itemTotal;
             totalDiscountAmount += itemDiscount;
 
-            // ✅ FIX: Set timestamp as String, not LocalDateTime
+            // 3. CREATE STOCK LOG (CRITICAL: Quantity must be NEGATIVE for sales)
             StockLogEntity log = new StockLogEntity();
             log.setVariant(variant);
             log.setBarcodeId(variant.getBarcodeId());
-            log.setQuantityChange(-qty);
+            log.setQuantityChange(-qty); // Important: -qty so StockService sees it as "Out"
             log.setUpdateReason("SALE: " + saleEntity.getSaleId());
             log.setTimestamp(formattedTimestamp);
             log.setAdmin(admin);
-
             logRepository.save(log);
 
+            // 4. Update Product Stock Status (AVAILABLE/LOW/OUT)
             stockService.refreshStatus(variant.getProduct().getProductId());
         }
 
@@ -101,7 +101,11 @@ public class SaleService {
         saleEntity.setNetAmount(totalAmount - totalDiscountAmount);
         saleEntity.setItems(itemEntities);
 
+        // 5. Save the Sale
         saleRepository.save(saleEntity);
+
+        // 6. TRIGGER REPORT UPDATE (This ensures stock_report updates immediately)
+        stockService.generateReport("DAILY", dateOnly);
     }
 
 
