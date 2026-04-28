@@ -32,12 +32,15 @@ public class StockService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     // --- Data Retrieval ---
+    // --- Data Retrieval ---
     public List<StockReportEntity> getAllSavedReports() {
         return reportRepository.findAll();
     }
 
+    // REPLACE YOUR OLD METHOD WITH THIS:
     public List<StockLogEntity> getAllStockLogs() {
-        return logRepository.findAll(); // Fetches the data from STOCK_LOG table
+        // This calls the new repository method to get newest logs first
+        return logRepository.findAllByOrderByLogIdDesc();
     }
 
     // --- Logic ---
@@ -132,9 +135,12 @@ public class StockService {
                 .sum();
     }
 
-    private void refreshStatus(Integer productId) {
+    // Change 'private' to 'public'
+    public void refreshStatus(Integer productId) {
         productRepository.findById(productId).ifPresent(p -> {
-            int stock = p.getVariants().stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum();
+            int stock = p.getVariants().stream()
+                    .mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0)
+                    .sum();
             p.setStockStatus(stock <= 0 ? StockStatus.OUT_OF_STOCK : stock < 10 ? StockStatus.LOW_STOCK : StockStatus.AVAILABLE);
             productRepository.save(p);
         });

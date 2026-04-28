@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**", "/error", "/h2-console/**").permitAll()
 
                         // Match your @RequestMapping("/api/products")
+                        .requestMatchers("/ws-stock/**").permitAll()
                         .requestMatchers("/api/products/**").permitAll()
                         .requestMatchers("/api/admin/**").permitAll()
                         .requestMatchers("/api/sales/**").permitAll()

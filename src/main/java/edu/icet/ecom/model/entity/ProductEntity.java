@@ -1,10 +1,10 @@
 package edu.icet.ecom.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import edu.icet.ecom.enums.StockStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,6 +20,7 @@ public class ProductEntity {
     private String productName;
     private String category;
     private Double basePrice;
+
     @Enumerated(EnumType.STRING)
     private StockStatus stockStatus;
 
@@ -31,8 +32,6 @@ public class ProductEntity {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnoreProperties("product") // Prevents variants from re-loading this product object
     private List<ProductVariantEntity> variants;
-
-
 }
-
