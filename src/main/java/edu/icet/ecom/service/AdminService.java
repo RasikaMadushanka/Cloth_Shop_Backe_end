@@ -43,6 +43,12 @@ public class AdminService implements UserDetailsService {
         existingAdmin.setRole(adminDto.getRole());
         existingAdmin.setFullName(adminDto.getFullName());
         existingAdmin.setIsActive(adminDto.getIsActive());
+
+        // --- ADD THESE TWO LINES ---
+        existingAdmin.setNIC(adminDto.getNIC());
+        existingAdmin.setAddress(adminDto.getAddress());
+        // ---------------------------
+
         adminRepository.save(existingAdmin);
     }
 
@@ -76,6 +82,7 @@ public class AdminService implements UserDetailsService {
         if (adminRepository.findByUsername("admin") == null) {
             AdminDto defaultAdmin = new AdminDto();
             defaultAdmin.setUsername("admin");
+            defaultAdmin.setNIC("200535100316");
             defaultAdmin.setPassword("admin123"); // Note: You should ideally encode this
             defaultAdmin.setRole("ADMIN");
             defaultAdmin.setFullName("System Administrator");

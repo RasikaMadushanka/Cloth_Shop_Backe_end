@@ -130,8 +130,8 @@ public class StockService {
 
         if (!existingReports.isEmpty()) {
             entity = existingReports.get(0);
-            // DO NOT update entity.setStockValue(dto.getStockValue()) here.
-            // This keeps the "Initial Stock Value" frozen from the first generation.
+            // FIX: Allow stock value to update
+            entity.setStockValue(dto.getStockValue());
 
             if (existingReports.size() > 1) {
                 for (int i = 1; i < existingReports.size(); i++) {
@@ -140,7 +140,6 @@ public class StockService {
             }
         } else {
             entity = new StockReportEntity();
-            // ONLY set the stock value when the report is created for the first time
             entity.setStockValue(dto.getStockValue());
         }
 

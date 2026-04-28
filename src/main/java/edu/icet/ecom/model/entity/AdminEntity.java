@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
@@ -21,6 +23,9 @@ public class AdminEntity  {
     private String role; // e.g. "ROLE_ADMIN"
     private String fullName;
     private Boolean isActive;
+    private String NIC;
+    private String Address;
+    private String lastLoginTime;
 
 
 }
