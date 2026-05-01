@@ -1,6 +1,7 @@
 package edu.icet.ecom.controller;
 
 import edu.icet.ecom.model.dto.AdminDto;
+import edu.icet.ecom.model.dto.LoginRequestDto;
 import edu.icet.ecom.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -41,5 +42,16 @@ public class Admin_Controller {
         adminService.DeleteAdmin(id);
         return ResponseEntity.ok("Admin deleted successfully");
     }
+    @PostMapping("/login")
+    public ResponseEntity<AdminDto> login(@RequestBody LoginRequestDto request) {
+
+        AdminDto admin = adminService.login(
+                request.getUsername(),
+                request.getPassword()
+        );
+
+        return ResponseEntity.ok(admin);
+    }
+
 
 }

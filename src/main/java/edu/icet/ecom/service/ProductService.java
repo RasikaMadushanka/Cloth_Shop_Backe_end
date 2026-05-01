@@ -177,7 +177,7 @@ public class ProductService {
 
         int checkDigit = (10 - (sum % 10)) % 10;
 
-        return base + checkDigit; // ✅ ALWAYS 13 digits
+        return base + checkDigit;
     }
 
     @Transactional

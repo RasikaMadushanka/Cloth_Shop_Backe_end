@@ -93,15 +93,36 @@ public class AdminService implements UserDetailsService {
 
     @PostConstruct
     public void initDefaultAdmin() {
-        if (adminRepository.findByUsername("admin") == null) {
+        if (adminRepository.findByUsername("SuperAdmin") == null) {
             AdminDto defaultAdmin = new AdminDto();
             defaultAdmin.setUsername("admin");
             defaultAdmin.setNIC("200535100316");
             defaultAdmin.setPassword("admin123");
-            defaultAdmin.setRole("ADMIN");
+            defaultAdmin.setRole("SUPER_ADMIN");
             defaultAdmin.setFullName("System Administrator");
             defaultAdmin.setIsActive(true);
             AddAdmin(defaultAdmin);
         }
+    }
+    public AdminDto login(String username, String password) {
+
+        AdminEntity admin = adminRepository.findByUsername(username);
+
+        // ❌ user not found
+        if (admin == null) {
+            throw new RuntimeException("Invalid username or password");
+        }
+
+        // ❌ wrong password
+        if (!admin.getPassword().equals(password)) {
+            throw new RuntimeException("Invalid username or password");
+        }
+
+        // ✅ update last login time
+        admin.setLastLoginTime(getCurrentTimestamp());
+        adminRepository.save(admin);
+
+        // ✅ return admin data (mapped to DTO)
+        return modelMapper.map(admin, AdminDto.class);
     }
 }
