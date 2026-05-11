@@ -108,21 +108,17 @@ public class AdminService implements UserDetailsService {
 
         AdminEntity admin = adminRepository.findByUsername(username);
 
-        // ❌ user not found
         if (admin == null) {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // ❌ wrong password
         if (!admin.getPassword().equals(password)) {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // ✅ update last login time
         admin.setLastLoginTime(getCurrentTimestamp());
         adminRepository.save(admin);
 
-        // ✅ return admin data (mapped to DTO)
         return modelMapper.map(admin, AdminDto.class);
     }
 }

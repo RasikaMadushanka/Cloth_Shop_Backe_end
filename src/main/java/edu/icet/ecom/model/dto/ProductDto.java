@@ -14,7 +14,8 @@ public class ProductDto {
     private String productName;
     private String category;
 
-    private Double basePrice;
+    private Double wholesalePrice;
+    private Double retailPrice;
     private String currency;
     private Double discountPercentage;
     private Double discountedPrice;

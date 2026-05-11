@@ -19,7 +19,8 @@ public class ProductEntity {
 
     private String productName;
     private String category;
-    private Double basePrice;
+    private Double wholesalePrice;
+    private Double retailPrice;
 
     @Enumerated(EnumType.STRING)
     private StockStatus stockStatus;
