@@ -1,5 +1,6 @@
 package edu.icet.ecom.model.dto;
 
+import edu.icet.ecom.enums.SaleType;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +11,7 @@ import java.util.List;
 public class SalesDto {
     private String saleId;
     private Integer adminId;
+    private SaleType saleType;
     private Double totalAmount;
     private Double discountedApplied;
     private Double discountPercentage;
