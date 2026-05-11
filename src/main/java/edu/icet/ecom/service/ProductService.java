@@ -77,8 +77,8 @@ public class ProductService {
 
         if (productDto.getProductName() != null) existingEntity.setProductName(productDto.getProductName());
         if (productDto.getCategory() != null) existingEntity.setCategory(productDto.getCategory());
-        if (productDto.getBasePrice() != null) existingEntity.setBasePrice(productDto.getBasePrice());
-
+        if (productDto.getWholesalePrice() != null) existingEntity.setWholesalePrice(productDto.getWholesalePrice());
+        if (productDto.getRetailPrice() != null) existingEntity.setRetailPrice(productDto.getRetailPrice());
         List<ProductVariantEntity> newlyAddedVariants = new ArrayList<>();
 
         if (productDto.getVariants() != null) {
@@ -137,8 +137,8 @@ public class ProductService {
             dto.setAvailableColors(entity.getVariants().stream().map(ProductVariantEntity::getColor).distinct().toList());
             dto.setTotalQuantity(entity.getVariants().stream().mapToInt(v -> v.getStockQuantity() != null ? v.getStockQuantity() : 0).sum());
 
-            if (entity.getBasePrice() != null && entity.getDiscountPercentage() != null) {
-                dto.setDiscountedPrice(entity.getBasePrice() * (1 - (entity.getDiscountPercentage() / 100)));
+            if (entity.getRetailPrice() != null && entity.getDiscountPercentage() != null) {
+                dto.setDiscountedPrice(entity.getRetailPrice() * (1 - (entity.getDiscountPercentage() / 100)));
             }
         }
         return dto;
@@ -201,9 +201,14 @@ public class ProductService {
         return variantRepository.findAll().stream()
                 .map(variant -> {
                     Map<String, Object> map = new HashMap<>();
-                    // Use a default string if barcode is null to prevent front-end crashes
                     map.put("barcodeId", variant.getBarcodeId() != null ? variant.getBarcodeId() : "N/A");
-                    map.put("price", variant.getPriceOverride() != null ? variant.getPriceOverride() : 0.0);
+
+                    // If there is no variant override, return the parent product's retail price
+                    Double price = (variant.getPriceOverride() != null)
+                            ? variant.getPriceOverride()
+                            : variant.getProduct().getRetailPrice();
+
+                    map.put("price", price != null ? price : 0.0);
                     return map;
                 })
                 .toList();
