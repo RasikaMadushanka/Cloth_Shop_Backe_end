@@ -43,34 +43,24 @@ public class StockService {
         return logRepository.findAllByOrderByLogIdDesc();
     }
 
-    // --- Logic ---
     @Transactional
     public void updateStock(StockUpdateDto dto) {
-        try {
-            ProductVariantEntity variant = variantRepository.findByBarcodeId(dto.getBarcodeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Barcode not found"));
+        ProductVariantEntity variant = variantRepository.findByBarcodeId(dto.getBarcodeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Variant not found"));
 
-            String now = LocalDateTime.now().format(FORMATTER);
+        // Increase the quantity
+        int currentQty = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+        variant.setStockQuantity(currentQty + dto.getQuantityAdded());
+        variantRepository.save(variant);
 
-            StockLogEntity log = new StockLogEntity();
-            log.setVariant(variant);
-            log.setBarcodeId(variant.getBarcodeId());
-            log.setQuantityChange(dto.getQuantityAdded());
-            log.setUpdateReason("RESTOCK");
-            log.setTimestamp(now);
-            logRepository.saveAndFlush(log);
-
-            variant.setStockQuantity((variant.getStockQuantity() != null ? variant.getStockQuantity() : 0) + dto.getQuantityAdded());
-            variantRepository.saveAndFlush(variant);
-
-            // Notify UI
-            StockReportDto updatedReport = generateReport("DAILY", LocalDate.now().toString());
-            messagingTemplate.convertAndSend("/topic/stock-reports", updatedReport);
-            refreshStatus(variant.getProduct().getProductId());
-
-        } catch (DataIntegrityViolationException e) {
-            System.out.println("Duplicate transaction blocked");
-        }
+        // Create a log entry
+        StockLogEntity log = new StockLogEntity();
+        log.setVariant(variant);
+        log.setBarcodeId(variant.getBarcodeId());
+        log.setQuantityChange(dto.getQuantityAdded());
+        log.setUpdateReason(dto.getUpdateReason());
+        log.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        logRepository.save(log);
     }
 
     @Transactional

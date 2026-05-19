@@ -11,6 +11,7 @@ import java.util.List;
 public class SalesDto {
     private String saleId;
     private Integer adminId;
+    private String salesPersonName;
     private SaleType saleType;
     private Double totalAmount;
     private Double discountedApplied;

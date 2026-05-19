@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,6 +34,16 @@ public class SaleController {
     @GetMapping("/find-by-barcode")
     public ResponseEntity<List<SalesDto>> findSalesByBarcode(@RequestParam String barcodeId) {
         return ResponseEntity.ok(saleService.findSalesByBarcode(barcodeId));
+    }
+    @PostMapping("/process-return")
+    public ResponseEntity<Map<String, String>> processReturn(@RequestBody Map<String, Object> returnRequest) {
+        // Expected JSON: { "saleId": "SALE-123", "barcodeId": "479...", "quantity": 1 }
+        saleService.processReturn(returnRequest);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Item successfully restocked and sale updated",
+                "status", "SUCCESS"
+        ));
     }
 
 }
