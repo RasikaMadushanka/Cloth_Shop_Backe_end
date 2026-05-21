@@ -185,15 +185,14 @@ public class ProductService {
         ProductEntity product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        // 1. Manually clear logs for every variant before deleting the product
+        // delete stock logs first
         if (product.getVariants() != null) {
             for (ProductVariantEntity variant : product.getVariants()) {
                 logRepository.deleteByVariant(variant);
-                variantRepository.delete(variant);
             }
         }
 
-        // 2. Now the database will allow the deletion
+        // cascade deletes variants automatically
         productRepository.delete(product);
     }
 
